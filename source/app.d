@@ -1,6 +1,6 @@
-import simpledisplay, std.random, std.math, std.range, std.algorithm, std.array, std.stdio;
-static import core.stdc.stdlib;
-enum collectLength = 10;
+import simpledisplay, std.random, std.math, std.range, std.algorithm, std.array, std.stdio, std.process;
+import core.runtime;
+enum collectLength = 15;
 
 
 	struct Bird{
@@ -13,9 +13,7 @@ enum collectLength = 10;
 		Bird[] birds;}
 	void serve(ref GameBoard where) {
 		if (where.birds.length >= collectLength) collectBirds(where);
-		write("new bird. it should become number ", where.birds.length+1, " of them\n");
 		assert(where.birds.length < collectLength);
-		write("assert passed");
 		auto newcomer = Bird(Point(-20, 0.uniform(where.height / 2)), uniform(6, 10));
 		if (dice(50, 50)){
 			newcomer.position.x = where.width + 20;
@@ -33,8 +31,9 @@ enum collectLength = 10;
 				try{
 					board.step; draw(window, board);}
 				catch(Throwable e){
-					write(e.msg);
-					core.stdc.stdlib.abort;}
+					e.toString((a){a.writeln;});
+					stdout.flush;
+					Runtime.terminate;}
 			},
 			delegate (KeyEvent event) {},
 			delegate (MouseEvent event) {});
@@ -58,7 +57,7 @@ void draw(SimpleWindow window, GameBoard board){
 }
 auto collectBirds(ref GameBoard where)
 out(a){
-	/+assert(a.birds.length < collectLength);+/}
+	assert(a.birds.length < collectLength);}
 body{
 	auto collected = where.birds.filter!((a){
 		if (0 <= a.position.x && a.position.x <= where.width)
@@ -66,6 +65,6 @@ body{
 		return a.position.x != a.velocity;
 	}).array;
 	where.birds = collected;
-	write("collector done");
+	writefln("collector done, with length of array %s", where.birds.length);
 	return where;	 
 }

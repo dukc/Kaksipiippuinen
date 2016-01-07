@@ -1,0 +1,8 @@
+{
+	"name": "guiproject",
+	"description": "A minimal D application.",
+	"copyright": "Copyright © 2016, Yleinen",
+	"authors": ["Yleinen"],
+	"dependencies": {
+	}
+}

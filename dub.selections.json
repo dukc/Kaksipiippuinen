@@ -1,4 +1,7 @@
 {
 	"fileVersion": 1,
-	"versions": {}
+	"versions": {
+		"dlib": "~master",
+		"arsd-official": "1.0.1"
+	}
 }

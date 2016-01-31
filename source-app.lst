@@ -1,0 +1,99 @@
+       |import simpledisplay, std.random, std.math, std.range, std.algorithm, std.array, std.stdio, std.process;
+       |import core.runtime;
+       |enum collectLength = 15;
+       |alias sd = simpledisplay;
+       |
+       |struct Bird{
+       |        enum size = sd.Point(30, 10);
+       |        enum normalHitPoints = 2;
+       |        
+       |        sd.Point position;
+       |        sd.Point velocity;
+       |        int _hitPoints = normalHitPoints;
+       |
+0000000|        ref hitPoints()@property {return _hitPoints;}
+       |        auto hitPoints(int val)@property {
+0000000|        velocity.y = val - normalHitPoints;
+0000000|                return _hitPoints = val;}
+       |}
+       |
+       |auto step(ref Bird obj){
+   7342|        obj.position.x += obj.velocity.x;
+   7342|        obj.position.y += obj.velocity.y;
+   7342|        return obj;}
+       |
+0000000|auto alive(Bird what){return what.hitPoints > 0;}
+       |unittest{
+       |        auto rabbit = Bird.init;
+       |        assert(rabbit.alive);
+       |        rabbit.hitPoints = 0;
+       |        assert(!rabbit.alive);
+       |        rabbit.hitpoints -= 10;
+       |        assert(!rabbit.alive);
+       |}
+       |
+       |struct GameBoard{
+       |        auto size = sd.Point(640, 480);
+       |        int drops = 0;
+       |        Bird[] birds;
+       |}
+       |
+       |void main() {
+      1|        auto board = GameBoard.init;
+      1|        auto window = new sd.SimpleWindow(640, 480, "Kaksipiippuinen");
+       |
+     11|        (() => board.serve)
+       |                .repeat(5)
+       |                .each!"a()";
+       |
+      1|        window.eventLoop(40,
+       |                delegate () {
+       |                        try{
+   1492|                                board.step; draw(window, board);}
+       |                        catch(Throwable e){
+0000000|                                e.toString((a){a.writeln;});
+0000000|                                stdout.flush;
+0000000|                                Runtime.terminate;}
+       |                },
+       |                delegate (sd.KeyEvent event) {},
+       |                delegate (sd.MouseEvent event) {});
+       |}
+       |
+       |void step(ref GameBoard board){
+    746|        if(dice(97, 3))
+     21|                board.serve;
+   8088|        board.birds.each!((ref Bird a){a.step;});
+       |}
+       |
+       |void draw(SimpleWindow window, GameBoard board){
+   1492|        auto painter = window.draw();
+    746|        painter.clear();
+    746|        painter.outlineColor = Color.black;
+    746|        painter.fillColor = Color.black; 
+    746|        board.birds.each!((a){
+   7342|        auto paintPos = a.position;
+   7342|        paintPos.x -= Bird.size.x / 2;
+   7342|        paintPos.y -= Bird.size.y / 2;
+   7342|                painter.drawRectangle(paintPos, Bird.size.x, Bird.size.y);
+   7342|                return;});
+       |}
+       |void serve(ref GameBoard where) {
+     27|        if (where.birds.length >= collectLength) collectBirds(where);
+     26|        auto newcomer = Bird(Point(-20, 0.uniform(where.size.y / 2)), Point(uniform(6, 10), 0));
+     26|        if (dice(50, 50)){
+     16|                newcomer.position.x = where.size.x + 20;
+     16|                newcomer.velocity.x *= -1;
+       |        }
+     26|        where.birds ~= newcomer;
+       |}
+       |auto collectBirds(ref GameBoard where)
+       |body{
+      1|        auto collected = where.birds.filter!((a){
+     22|                if (-Bird.size.x <= a.position.x && a.position.x <= where.size.x + Bird.size.x)
+      4|                        return true;
+     11|                return a.position.x.sgn != a.velocity.x.sgn;
+       |        }).array;
+      1|        where.birds = collected;
+      1|        return where;    
+       |}
+source\app.d is 82% covered

@@ -1,8 +1,10 @@
 {
-	"name": "guiproject",
+	"name": "kaksipiippuinen",
 	"description": "A minimal D application.",
-	"copyright": "Copyright © 2016, Yleinen",
-	"authors": ["Yleinen"],
+	"copyright": "Copyright © 2016, A.J.I.Eskola",
+	"authors": ["Ate Eskola"],
 	"dependencies": {
+		 "dlib": "~master",
+		 "arsd-official:simpledisplay": "~>1.0.1"
 	}
 }

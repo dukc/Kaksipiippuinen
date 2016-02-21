@@ -1,4 +1,6 @@
-import std.random, std.math, std.range, std.algorithm, std.array, std.stdio, std.process, std.conv;
+import std.random, std.math, std.range, std.algorithm, std.array,
+	std.stdio, std.process, std.conv, std.typecons, std.container,
+	std.variant, std.traits;
 import core.runtime;
 import dlib.math.vector : vec3;
 static import simpledisplay;
@@ -7,6 +9,59 @@ static import dlib;
 
 enum collectLength = 500;
 enum delta = .04f;
+
+struct Functor(alias f){
+	Parameters!f[0] state;
+	auto opCall(Parameters!f[1 .. $] par){
+		return f(state, par);
+	}
+	this (Parameters!f[0] a){
+		state = a;
+	}
+}
+
+void generate(C)(C mission, int times){
+	static if (is(void == ReturnType!mission)){
+		mission
+			.repeat(times)
+			.each!("a()");
+	} else {
+		mission
+			.generate
+			.take(times);
+	}
+	return;
+}
+
+class GameBoard{
+	auto size = sd.Point(640, 480);
+	int drops = 0;
+	Bird[] birds;
+	Shot[] shots;
+	auto schelude = make!(RedBlackTree!(Tuple!(float, Variant), "a[0] < b[0]"));
+}
+
+void main() {
+	auto board = GameBoard.init;
+	auto window = new sd.SimpleWindow(640, 480, "Kaksipiippuinen");
+
+	(() => board.serve)
+		.generate(5);
+
+	window.eventLoop((delta*1000).to!int,
+		delegate () {
+			try{
+				board.step; draw(window, board);
+			} catch(Throwable e){
+				e.toString((a){a.writeln;});
+				stdout.flush;
+				Runtime.terminate;
+			}
+		},
+		delegate (sd.KeyEvent event) {},
+		delegate (sd.MouseEvent event) {}
+	);
+}
 
 struct Bird{
 	enum size = sd.Point(30, 10);
@@ -32,7 +87,8 @@ struct Shot{
 
 auto step(ref Bird obj){
 	obj.position += obj.velocity * delta;
-	return obj;}
+	return obj;
+}
 
 auto effective(Bird a, in GameBoard where){
 	if (-Bird.size.x <= a.position.x && a.position.x <= where.size.x + Bird.size.x)
@@ -55,43 +111,30 @@ auto step(ref Shot obj){
 	return obj;
 }
 
-auto effective(in Shot obj){
+auto effective(in Shot obj, in GameBoard where){
 	return obj.position.z < 50;
 }
 
-struct GameBoard{
-	auto size = sd.Point(640, 480);
-	int drops = 0;
-	Bird[] birds;
-}
-
-void main() {
-	auto board = GameBoard.init;
-	auto window = new sd.SimpleWindow(640, 480, "Kaksipiippuinen");
-
-	(() => board.serve)
-		.repeat(5)
-		.each!"a()";
-
-	window.eventLoop((delta*1000).to!int,
-		delegate () {
-			try{
-				board.step; draw(window, board);}
-			catch(Throwable e){
-				e.toString((a){a.writeln;});
-				stdout.flush;
-				Runtime.terminate;}
-		},
-		delegate (sd.KeyEvent event) {},
-		delegate (sd.MouseEvent event) {}
-	);
-}
-
 void step(ref GameBoard board){
-	if(dice(97, 3))
-		board.serve;
-	board.birds.each!((ref Bird a){a.step;});
-}
+	with(board)
+{
+	if (dice(97, 3)) board.serve;
+	birds =
+		birds
+		.filter!(a => a.effective(board))
+		.array;
+	birds.each!((ref Bird a){
+		a.step;
+	});
+	shots =
+		shots
+		.filter!(a => a.effective(board))
+		.array;
+	shots.each!((ref Shot a){
+		a.step;
+	});
+	
+}}
 
 void draw(sd.SimpleWindow window, GameBoard board){
 	auto painter = window.draw();
@@ -111,7 +154,7 @@ void draw(sd.SimpleWindow window, GameBoard board){
 void serve(ref GameBoard where) {
 	if (where.birds.length >= collectLength)
 		where.birds = where.birds.filter!(a => a.effective(where)).array;
-	auto newcomer = Bird(vec3(-20, 0.uniform(where.size.y / 2), Bird.normalZ), vec3(uniform(6, 10), 0, Bird.normalZ));
+	auto newcomer = Bird(vec3(-20, 0.uniform(where.size.y / 2), Bird.normalZ), vec3(uniform(150, 250), 0, Bird.normalZ));
 	if (dice(50, 50)){
 		newcomer.position.x = where.size.x + 20;
 		newcomer.velocity.x *= -1;

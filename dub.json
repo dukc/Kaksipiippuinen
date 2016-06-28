@@ -5,6 +5,6 @@
 	"authors": ["Ate Eskola"],
 	"dependencies": {
 		 "dlib": "~master",
-		 "arsd-official:simpledisplay": "~>1.0.1"
+		 "arsd-official:simpledisplay": "~>1.1.0"
 	}
 }

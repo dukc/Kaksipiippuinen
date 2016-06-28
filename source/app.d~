@@ -1,7 +1,7 @@
 import std.random, std.math, std.range, std.algorithm, std.array,
 	std.stdio, std.process, std.conv, std.typecons, std.container,
 	std.variant, std.traits;
-import bird, shot, gameObject;
+import bird, gameObject;
 import core.runtime;
 import dlib.math.vector : vec3;
 static import simpledisplay;
@@ -13,7 +13,6 @@ alias InputEvent = Algebraic!(sd.KeyEvent, sd.MouseEvent);
 enum collectLength = 500;
 enum delta = .04f;
 
-auto ref use(alias code, T)(auto ref T a){return code(a);}
 
 struct Functor(alias f){
 	Parameters!f[0] state;
@@ -73,7 +72,7 @@ void generate(C)(C mission, int times){
 }
 
 class GameBoard{
-	auto size = sd.Point(32, 24);
+	auto size = sd.Point(640, 480);
 	int drops = 0;
 	float time = 0;
 	GameObject[] content;
@@ -84,52 +83,26 @@ class GameBoard{
 	{	foreach(i; 0 .. 5){content ~= new Bird;}
 	}
 	private class Bird : bird.Bird
-	{  this()
-		{	position = vec3(-1, 0.5.uniform(1) * GameBoard.size.y, normalZ);
-			velocity = vec3(uniform(7.5, 12.5), 0, normalZ);
+	{  int _hitPoints = 2;		ref int hitPoints() @property {return _hitPoints;}
+		vec3 _position;
+		ref vec3 position() @property {return _position;}
+		vec3 _velocity;
+		ref vec3 velocity() @property {return _velocity;}
+		this()
+		{	position = vec3(-20, 0.uniform(GameBoard.size.y / 2), normalZ);
+			velocity = vec3(uniform(150, 250), 0, normalZ);
 			if (dice(50, 50)){
-				position.x = GameBoard.size.x + 1;
+				position.x = GameBoard.size.x + 20;
 				velocity.x *= -1;
 			}
 		}
-		override bool outOfArea()
+		bool outOfArea()
 		{	if (-Bird.size.x <= position.x && position.x <= GameBoard.size.x + Bird.size.x)
-				return false;
-			return position.x.sgn == velocity.x.sgn;
+				return true;
+			return position.x.sgn != velocity.x.sgn;
 		}
-	}
-
-	//En keksi parempaa tapaa saada tyyppiä Shotin (alla) malliargumentille
-	auto _hitCanditates()
-	{	return	content
-		.	map!(a => cast(Bird)a)
-		.	filter!(a => a)
-		;
-	}
-
-	private class Shot : shot.Shot!(typeof(_hitCanditates() ) )
-	{	override bool outOfArea()
-		{	return (position.z > 2 * Bird.normalZ)
-			.	use!( (a)
-				{	if(a) {writeln("shot out");}
-					return a;
-				})
-			;
-		}
-
-		override typeof(_hitCanditates() ) hitCanditates(){return _hitCanditates;}
-	}
-
-	void onMouseEvent(sd.MouseEvent what)
-	{	if(what.type == sd.MouseEventType.buttonPressed)
-		{	if(what.button == sd.MouseButton.left)
-			{  writeln("bang!");
-				auto shot = new Shot;
-				content ~= shot;
-				shot.position = vec3(what.x * 20, what.y * 20, 0);
-				shot.velocity = shot.muzzleVel;
-			}
-		}
+		void retire(){}
+		void eachStep(){}
 	}
 }
 
@@ -153,8 +126,7 @@ void main() {
 			}
 		},
 		delegate (sd.KeyEvent event) {},
-		delegate (sd.MouseEvent event)
-		{board.onMouseEvent(event);}
+		delegate (sd.MouseEvent event) {}
 	);
 }
 
@@ -225,7 +197,7 @@ void draw(sd.SimpleWindow window, GameBoard board){
 	board.content.each!( (GameObject na){
 		if(auto a = cast(Bird)na)
 	{
-        auto paintPos = (a.position * 20).use!((vec3 b) => sd.Point(b.x.to!int, window.height - b.y.to!int) );
+        auto paintPos = sd.Point(a.position.x.to!int, a.position.y.to!int);
         paintPos.x -= Bird.size.x / 2;
         paintPos.y -= Bird.size.y / 2;
 		painter.drawRectangle(paintPos, Bird.size.x, Bird.size.y);

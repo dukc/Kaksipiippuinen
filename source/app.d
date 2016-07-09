@@ -4,8 +4,7 @@ import std.random, std.math, std.range, std.algorithm, std.array,
 import bird, shot, gameObject;
 import core.runtime;
 import dlib.math.vector : vec3;
-static import simpledisplay;
-alias sd = simpledisplay;
+import sd = arsd.simpledisplay;
 static import dlib;
 
 alias InputEvent = Algebraic!(sd.KeyEvent, sd.MouseEvent);
@@ -73,20 +72,23 @@ void generate(C)(C mission, int times){
 }
 
 class GameBoard{
-	auto size = sd.Point(32, 24);
-	int drops = 0;
-	float time = 0;
+	enum size = vec3(32, 24, 0);
+    enum windowParameters = tuple(640, 480, "Kaksipiippuinen");
+    sd.SimpleWindow gui;
+	int drops;
+	float time;
 	GameObject[] content;
 	/+auto schelude = make!(RedBlackTree!(Variant, "a.state.time < b.state.time") );
 	SList!InputEvent events; +/
-
-	this()
+    
+    final:
+	public void start()
 	{	foreach(i; 0 .. 5){content ~= new Bird;}
 	}
 	private class Bird : bird.Bird
 	{  this()
 		{	position = vec3(-1, 0.5.uniform(1) * GameBoard.size.y, normalZ);
-			velocity = vec3(uniform(7.5, 12.5), 0, normalZ);
+			velocity = vec3(uniform(7.5, 12.5), 0, 0);
 			if (dice(50, 50)){
 				position.x = GameBoard.size.x + 1;
 				velocity.x *= -1;
@@ -126,26 +128,40 @@ class GameBoard{
 			{  writeln("bang!");
 				auto shot = new Shot;
 				content ~= shot;
-				shot.position = vec3(what.x * 20, what.y * 20, 0);
+				shot.position = vec3(what.x / 20, size.y - what.y / 20, 0);
 				shot.velocity = shot.muzzleVel;
 			}
 		}
 	}
+    
+    void draw(){
+        auto painter = gui.draw();
+        painter.clear;
+        painter.outlineColor = sd.Color.black;
+        painter.fillColor = sd.Color.black;
+
+        content.each!( (GameObject na){
+            if(auto a = cast(Bird)na)
+        {
+            auto paintPos = (a.position * 20).use!((vec3 b) => sd.Point(b.x.to!int, gui.height - b.y.to!int) );
+            paintPos.x -= Bird.size.x / 2;
+            paintPos.y -= Bird.size.y / 2;
+            painter.drawRectangle(paintPos, Bird.size.x, Bird.size.y);
+        }});
+    }
 }
 
 
 
 void main() {
 	auto board = new GameBoard;
-	auto window = new sd.SimpleWindow(640, 480, "Kaksipiippuinen");
+	board.gui = new sd.SimpleWindow(board.windowParameters.expand);
 
-	/+(() => board.serve)
-		.generate(5);+/
-
-	window.eventLoop((delta*1000).to!int,
+	board.gui.eventLoop((delta*1000).to!int,
 		delegate () {
 			try{
-				board.step; draw(window, board);
+				board.step;
+                board.draw;
 			} catch(Throwable e){
 				e.toString((a){a.writeln;});
 				stdout.flush;
@@ -158,24 +174,6 @@ void main() {
 	);
 }
 
-/+struct Shot{
-	dlib.Sphere shape;
-	alias shape this;
-	ref position() @property inout {return shape.center;}
-	enum velocity = vec3(0, 0, 200);
-}+/
-
-/+auto step(ref Bird obj){
-	obj.position += obj.velocity * delta;
-	return obj;
-}
-
-auto effective(Bird a, in GameBoard where){
-	if (-Bird.size.x <= a.position.x && a.position.x <= where.size.x + Bird.size.x)
-		return true;
-	return a.position.x.sgn != a.velocity.x.sgn;
-}+/
-
 auto alive(Bird what){return what.hitPoints > 0;}
 unittest{
 	auto rabbit = Bird.init;
@@ -186,16 +184,7 @@ unittest{
 	assert(!rabbit.alive);
 }
 
-/+auto step(ref Shot obj){
-	obj.position += obj.velocity * delta;
-	return obj;
-}
-
-auto effective(in Shot obj, in GameBoard where){
-	return obj.position.z < 50;
-}+/
-
-void step(ref GameBoard board){
+void step(GameBoard board){
 	with(board)
 {
 	if (dice(97, 3)) board.content ~= board.new Bird;
@@ -203,35 +192,6 @@ void step(ref GameBoard board){
 		content
 		.filter!(a => a.step(delta))
 		.array;
-	/+shots =
-		shots
-		.filter!(a => a.effective(board))
-		.array;
-	shots.each!((ref Shot a){
-		a.step;
-	});
-	board.time += delta;
-	schelude[ ]
-		.until!(a => a.state.time < board.time)
-		.each!"a( )";+/
 }}
 
-void draw(sd.SimpleWindow window, GameBoard board){
-	auto painter = window.draw();
-	painter.clear;
-	painter.outlineColor = sd.Color.black;
-	painter.fillColor = sd.Color.black;
 
-	board.content.each!( (GameObject na){
-		if(auto a = cast(Bird)na)
-	{
-        auto paintPos = (a.position * 20).use!((vec3 b) => sd.Point(b.x.to!int, window.height - b.y.to!int) );
-        paintPos.x -= Bird.size.x / 2;
-        paintPos.y -= Bird.size.y / 2;
-		painter.drawRectangle(paintPos, Bird.size.x, Bird.size.y);
-	}});
-}
-
-/+void serve(ref GameBoard where) {
-	where.content ~= where.new Bird;
-} +/

@@ -1,5 +1,5 @@
-static import simpledisplay;
-alias sd = simpledisplay;
+static import arsd.simpledisplay;
+alias sd = arsd.simpledisplay;
 import std.stdio;
 import gameObject;
 
@@ -17,7 +17,7 @@ class Bird : GameObject{
 	//Koska liittyy grafiikkaan, voisi määritellä ehkä mieluummin muualla.
 	enum size = sd.Point(30, 10);
 	enum normalHitPoints = 2;
-	enum normalZ = 30;
+	enum normalZ = 32;
 }
 
 

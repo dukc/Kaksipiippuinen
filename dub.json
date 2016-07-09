@@ -4,7 +4,7 @@
 	"copyright": "Copyright © 2016, A.J.I.Eskola",
 	"authors": ["Ate Eskola"],
 	"dependencies": {
-		 "dlib": "~master",
-		 "arsd-official:simpledisplay": "~>1.1.0"
+                "arsd-official:simpledisplay": "~>1.1.0",
+		 "dlib": "~master"
 	}
 }

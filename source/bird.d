@@ -1,23 +1,24 @@
+module kaksipiippuinen.bird;
 static import arsd.simpledisplay;
 alias sd = arsd.simpledisplay;
 import std.stdio;
-import gameObject;
+import kaksipiippuinen.gameObject;
 
 class Bird : GameObject{
-	int hitPoints = normalHitPoints;
+    int hitPoints = normalHitPoints;
 
-	void takeDamage(int amount)
-	{  writeln("hit!");
-		void delegate() onDie = hitPoints > 0? (){acceleration.y = -5;}: (){};
-		hitPoints -= amount;
-		velocity.y -= amount;
-		hitPoints > 0? {}: onDie();
-	}
+        void takeDamage(int amount)
+    {   writeln("hit!");
+        void delegate() onDie = hitPoints >= 0? (){acceleration.y = -5;}: (){};
+        hitPoints -= amount;
+        velocity.y -= amount;
+        hitPoints >= 0? {}: onDie();
+    }
 
-	//Koska liittyy grafiikkaan, voisi määritellä ehkä mieluummin muualla.
-	enum size = sd.Point(30, 10);
-	enum normalHitPoints = 2;
-	enum normalZ = 32;
+    //Koska liittyy grafiikkaan, voisi määritellä ehkä mieluummin muualla.
+    enum size = sd.Point(30, 10);
+    enum normalHitPoints = 1;
+    enum normalZ = 32;
 }
 
 

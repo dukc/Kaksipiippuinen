@@ -1,10 +1,13 @@
 {
-	"name": "kaksipiippuinen",
-	"description": "A minimal D application.",
-	"copyright": "Copyright © 2016, A.J.I.Eskola",
-	"authors": ["Ate Eskola"],
-	"dependencies": {
-                "arsd-official:simpledisplay": "~>1.1.0",
-		 "dlib": "~master"
-	}
+    "name": "kaksipiippuinen",
+    "authors": [
+        "Dukc"
+    ],
+    "description": "A minimal D application.",
+    "copyright": "Copyright © 2016, Yleinen",
+    "license": "proprietary",
+    "dependencies": {
+        "arsd-official:simpledisplay": "~master",
+        "dlib": "~master"
+    }
 }

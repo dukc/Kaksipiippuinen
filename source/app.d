@@ -9,7 +9,7 @@ import sd = arsd.simpledisplay;
 
 alias InputEvent = Algebraic!(sd.KeyEvent, sd.MouseEvent);
 
-enum collectLength = 500;
+//enum collectLength = 500;
 enum delta = .04f;
 
 auto ref use(alias code, T)(auto ref T a){return code(a);}
@@ -22,40 +22,6 @@ struct Functor(alias f){
     this (Parameters!f[0] a){
     state = a;
     }
-}
-
-auto cumulative(Range)(Range base)
-    if (isInputRange!Range)
-    {   return Cumulative!(Range, ReturnType!(Range.front))(base);
-    }
-struct Cumulative(Range, Elem)
-    if (isInputRange!Range)
-    {  Range base;
-    Elem soFar;
-    bool frontCalculated = false;
-    static if (isForwardRange!Range)
-    {   this(this)
-        {   base = base.save;
-        }}
-    ref front()
-        {   if (!frontCalculated)
-        {   soFar += base.front;
-            frontCalculated = true;
-        }
-        return soFar;
-        }
-    void popFront()
-        {   front;
-        base.popFront;
-        frontCalculated = false;
-        }
-    bool empty()
-        {   return base.empty;
-        }
-    static if (isForwardRange!Range)
-    {   auto save() inout
-        {   return this;
-        }}
 }
 
 void generate(C)(C mission, int times){
@@ -74,6 +40,7 @@ void generate(C)(C mission, int times){
 class GameBoard : sd.SimpleWindow
 {   enum size = vec3(32, 24, 0);
     enum windowParameters = tuple(640, 480, "Kaksipiippuinen");
+    enum missPenalty = 10.0;
     int drops;
     float time = 240;
     GameObject[] content;
@@ -124,16 +91,28 @@ class GameBoard : sd.SimpleWindow
     }
 
     private class Shot : kaksipiippuinen.shot.Shot!Bird
-    {   override bool outOfArea()
+    {   int kills = 0;
+        override bool outOfArea()
         {   return (position.z > 2 * Bird.normalZ)
-            .use!( (a)
-                   {    if(a) {writeln("shot out");}
-                   return a;
-                   })
+            .   use!( (a)
+                {   if(a)
+                    {   writeln("shot out");
+                        //Tappamaton laukaus sakottaa,
+                        //useamman kerralla tappamalla saa bonuksen
+                        time += (kills - 1) * missPenalty;
+                    }
+                    return a;
+                })
             ;
         }
 
-            override ForwardRange!Bird hitCanditates(){return _hitCanditates.inputRangeObject;}
+        override void onHit(Bird victim, int damage)
+        {   if (!victim.alive) kills--;
+            super.onHit(victim, damage);
+            if (!victim.alive) kills++;
+        }
+
+        override ForwardRange!Bird hitCanditates(){return _hitCanditates.inputRangeObject;}
     }
 
     void onMouseEvent(sd.MouseEvent what)

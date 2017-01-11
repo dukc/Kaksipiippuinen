@@ -14,13 +14,19 @@ class Shot(Target) : GameObject
 
     final override protected void eachStep(float deltaTime)
     {   hitCanditates
-        .each!((Target a)
-               {auto damage = damageDistances
-                   .    find!((b, c) => b.distance ^^ 2 > c.lengthsqr)(position - a.position )
-                   ;
-               if (!damage.empty) {a.takeDamage(damage.front.damage);}
-               });
+            .each!((Target a)
+            {   auto damage = damageDistances
+                .    find!((b, c) => b.distance ^^ 2 > c.lengthsqr)(position - a.position )
+                ;
+                if (!damage.empty)
+                {   onHit(a, damage.front.damage);
+                }
+            });
     }
+
+    void onHit(Target victim, int damage)
+    {   victim.takeDamage(damage);
+    };
     abstract protected ForwardRange!Target hitCanditates();
 }
 

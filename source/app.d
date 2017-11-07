@@ -4,85 +4,79 @@ import std.random, std.math, std.range, std.algorithm, std.array,
     std.variant, std.traits;
 import kaksipiippuinen.bird, kaksipiippuinen.shot, kaksipiippuinen.gameObject;
 import core.runtime;
-import dlib.math.vector : vec3;
-import sd = arsd.simpledisplay;
+import dlangui.core.math3d;
+import dlangui;
 
-alias InputEvent = Algebraic!(sd.KeyEvent, sd.MouseEvent);
-
-//enum collectLength = 500;
 enum delta = .04f;
 
-auto ref use(alias code, T)(auto ref T a){return code(a);}
+mixin APP_ENTRY_POINT;
 
-struct Functor(alias f){
-    Parameters!f[0] state;
-    auto opCall(Parameters!f[1 .. $] par){
-    return f(state, par);
-    }
-    this (Parameters!f[0] a){
-    state = a;
-    }
-}
+class GameBoard : CanvasWidget
+{   import dlangui.core.types : Rect;
 
-void generate(C)(C mission, int times){
-    static if (is(void == ReturnType!mission)){
-    mission
-        .repeat(times)
-        .each!(a => a());
-    } else {
-    mission
-        .generate
-        .take(times);
-    }
-    return;
-}
-
-class GameBoard : sd.SimpleWindow
-{   enum size = vec3(32, 24, 0);
-    enum windowParameters = tuple(640, 480, "Kaksipiippuinen");
+    enum size = vec3(32, 24, 0);
     enum missPenalty = 10.0;
     int drops;
     float time = 240;
     GameObject[] content;
+    ulong stepTimer;
 
-    public this()
-    {   super(windowParameters.expand);
-        foreach(i; 0 .. 5){content ~= new Bird;}
+    static xOf(vec2 pos, Rect transform)
+    {   return cast(int)(pos.x / size.x * transform.width) + transform.left;
     }
+
+    static yOf(vec2 pos, Rect transform)
+    {   return transform.bottom - cast(int)(pos.y / size.y * transform.height);
+    }
+
+    static vecOf(int x, int y, Rect transform)
+    {   return vec2
+        (   (x - transform.left) * size.x / transform.width,
+            -(y - transform.bottom) * size.y / transform.height,
+        );
+    }
+
+    public void start()
+    {   foreach(i; 0 .. 5){content ~= new Bird;}
+        stepTimer = setTimer(cast(long)(1000 * delta));
+    }
+    
     private class Bird : kaksipiippuinen.bird.Bird{
-    this(){
-        position = vec3(-1, 0.5.uniform(1) * GameBoard.size.y, normalZ);
-        velocity = vec3(uniform(7.5, 12.5 + drops * .1), 0, 0);
-        if (dice(50, 50)){
-        position.x = GameBoard.size.x + 1;
-        velocity.x *= -1;
+        this(){
+            position = vec3(-1, 0.5.uniform(1) * GameBoard.size.y, normalZ);
+            velocity = vec3(uniform(7.5, 12.5 + drops * .1), 0, 0);
+            if (dice(50, 50)){
+                position.x = GameBoard.size.x + 1;
+                velocity.x *= -1;
+            }
         }
-    }
 
-    override void takeDamage(int amount){
-        auto originallyAlive = hitPoints >= 0;
-        auto originalSpeed = velocity.x;
-        super.takeDamage(amount);
-        if (originallyAlive){
-        //tappo
-        if(hitPoints < 0){
-            drops++;
-            time += originalSpeed.abs;
+        override void takeDamage(int amount){
+            auto originallyAlive = hitPoints >= 0;
+            auto originalSpeed = velocity.x;
+            super.takeDamage(amount);
+            if (originallyAlive){
+            //tappo
+            if(hitPoints < 0){
+                drops++;
+                time += originalSpeed.abs;
+            }
+            //haavakko
+            else{}
+            }
         }
-        //haavakko
-        else{}
+        
+        override bool outOfArea(){
+            if (-Bird.size.x <= position.x && position.x <= GameBoard.size.x + Bird.size.x)
+            return false;
+            //haavoittunut
+            if (hitPoints != normalHitPoints && hitPoints >= 0){
+                time = time * .9 - 15;
+            }
+            return position.x.sgn == velocity.x.sgn;
         }
     }
-    override bool outOfArea(){
-        if (-Bird.size.x <= position.x && position.x <= GameBoard.size.x + Bird.size.x)
-        return false;
-        //haavoittunut
-        if (hitPoints != normalHitPoints && hitPoints >= 0){
-        time = time * .9 - 15;
-        }
-        return position.x.sgn == velocity.x.sgn;
-    }
-    }
+    
     auto _hitCanditates()
     {   return  content
         .   map!(a => cast(Bird)a)
@@ -96,8 +90,7 @@ class GameBoard : sd.SimpleWindow
         {   return (position.z > 2 * Bird.normalZ)
             .   use!( (a)
                 {   if(a)
-                    {   writeln("shot out");
-                        //Tappamaton laukaus sakottaa,
+                    {   //Tappamaton laukaus sakottaa,
                         //useamman kerralla tappamalla saa bonuksen
                         time += (kills - 1) * missPenalty;
                     }
@@ -115,59 +108,69 @@ class GameBoard : sd.SimpleWindow
         override ForwardRange!Bird hitCanditates(){return _hitCanditates.inputRangeObject;}
     }
 
-    void onMouseEvent(sd.MouseEvent what)
-    {   if(what.type == sd.MouseEventType.buttonPressed)
-        {   if(what.button == sd.MouseButton.left)
-            {  writeln("bang!");
-                auto shot = new Shot;
+    override bool onMouseEvent(from!"dlangui".MouseEvent what)
+    {   import dlangui;
+        if(what.action == MouseAction.ButtonDown)
+        {   if(what.button == MouseButton.Left)
+            {   auto shot = new Shot;
                 content ~= shot;
-                shot.position = vec3(what.x / 20, size.y - what.y / 20, 0);
+                shot.position = vec3(vecOf(what.x, what.y, Rect(0, 0, window.width, window.height)).vec[] ~ [0.0f]);
                 shot.velocity = shot.muzzleVel;
+                return true;
             }
         }
+        
+        return false;
     }
 
-    override sd.ScreenPainter draw()
-    {   auto painter = super.draw();
-        painter.clear;
-        painter.outlineColor = sd.Color.black;
-        painter.fillColor = sd.Color.black;
+    override void doDraw(from!"dlangui".DrawBuf buf, Rect area)
+    {   import dlangui;
+        //buf.fillRect(area, 0x00FFFFFF);
+        buf.fill(/*white*/ 0x00FFFFFF);
 
         content.each!( (GameObject na){
             if(auto a = cast(Bird)na)
             {
-                auto paintPos = (a.position * 20).use!((vec3 b) => sd.Point(b.x.to!int, GameBoard.height - b.y.to!int) );
-                paintPos.x -= Bird.size.x / 2;
-                paintPos.y -= Bird.size.y / 2;
-                painter.drawRectangle(paintPos, Bird.size.x, Bird.size.y);
+                auto paintPos = vec2(a.position.vec[0 .. 2]) - Bird.size / 2;
+                buf.fillRect(Rect
+                (   xOf(paintPos, area),
+                    yOf(paintPos + Bird.size, area),
+                    xOf(paintPos + Bird.size, area),
+                    yOf(paintPos, area),
+                ), /*black*/ 0X00000000);
             }});
 
-        painter.drawText(sd.Point(0, 0), "Tiputuksia: " ~ drops.to!string);
-        painter.drawText(sd.Point(0, 30), "Aika: " ~ time.to!int.to!string);
-        return painter;
+        font.drawText(buf, area.left, area.top, "Tiputuksia: "d ~ drops.to!dstring, 0x00000000);
+        font.drawText(buf, area.left, area.top + 30, "Aika: "d ~ time.to!int.to!dstring, 0x00000000);
+    }
+
+    override bool onTimer(ulong timerId)
+    {   if (timerId == stepTimer)
+        {   if (dice(97, 3)) content ~= this.new Bird;
+        
+            content =
+                content
+                .filter!(a => a.step(delta))
+                .array
+                ;
+            time -= delta * (1 + drops/100);
+            invalidate();
+
+            return true;
+        }
+        assert(false);
     }
 }
 
 
-void main() {
-    auto board = new GameBoard;
-
-    board.eventLoop((delta*1000).to!int,
-            delegate () {
-                try{
-                    board.step;
-                    board.draw;
-                } catch(Throwable e){
-                    e.toString((a){a.writeln;});
-                    stdout.flush;
-                    Runtime.terminate;
-                }
-            },
-            delegate (sd.KeyEvent event) {},
-            delegate (sd.MouseEvent event)
-            {   board.onMouseEvent(event);
-            }
-    );
+extern (C) int UIAppMain(string[] args)
+{   import dlangui;
+    Window window = Platform.instance.createWindow("Kaksipiippuinen", null, WindowFlag.Resizable | WindowFlag.ExpandSize, 640, 480);
+    auto board = new GameBoard();
+    window.mainWidget = board;
+    window.show;
+    board.start;
+    return Platform.instance.enterMessageLoop();
 }
 
 auto alive(Bird what){return what.hitPoints > 0;}
@@ -180,17 +183,14 @@ unittest{
     assert(!rabbit.alive);
 }
 
-void step(GameBoard board){
-    with(board)
-    {
-    if (dice(97, 3)) board.content ~= board.new Bird;
-    content =
-        content
-        .filter!(a => a.step(delta))
-        .array;
-    }
-    board.time -= delta * (1 + board.drops/100);
+//////////////////////////////////////////////////////
+//utilites from here-on
 
+auto ref use(alias code, T)(auto ref T a){return code(a);}
+
+//Nielsen-Scherkl lookup
+template from(string moduleName)
+{
+    mixin("import from = " ~ moduleName ~ ";");
 }
-
 

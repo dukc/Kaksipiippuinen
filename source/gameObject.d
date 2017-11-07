@@ -1,6 +1,6 @@
 module kaksipiippuinen.gameObject;
 
-import dlib.math.vector : vec3;
+import dlangui.core.math3d;
 
 class GameObject{
     vec3 position;

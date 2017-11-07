@@ -3,11 +3,13 @@
     "authors": [
         "Dukc"
     ],
-    "description": "A minimal D application.",
+    "description": "As Timo Pyrrö called it, a duck hunter.",
     "copyright": "Copyright © 2016, Yleinen",
     "license": "proprietary",
     "dependencies": {
-        "arsd-official:simpledisplay": "~master",
-        "dlib": "~master"
+        "dlangui": "~>0.9.78"
+    },
+    "subConfigurations": {
+        "dlangui": "default"
     }
 }

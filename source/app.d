@@ -17,9 +17,10 @@ class GameBoard : CanvasWidget
     enum size = vec3(32, 24, 0);
     enum missPenalty = 10.0;
     int drops;
-    float time = 240;
+    float time = -1;
     GameObject[] content;
     ulong stepTimer;
+    vec2 mousePos;
 
     static xOf(vec2 pos, Rect transform)
     {   return cast(int)(pos.x / size.x * transform.width) + transform.left;
@@ -36,9 +37,12 @@ class GameBoard : CanvasWidget
         );
     }
 
-    public void start()
-    {   foreach(i; 0 .. 5){content ~= new Bird;}
+    public void restart()
+    {   drops = 0;
+        time = 240;
+        content.length = 0;
         stepTimer = setTimer(cast(long)(1000 * delta));
+        foreach(i; 0 .. 5){content ~= new Bird;}
     }
     
     private class Bird : kaksipiippuinen.bird.Bird{
@@ -109,15 +113,26 @@ class GameBoard : CanvasWidget
     }
 
     override bool onMouseEvent(from!"dlangui".MouseEvent what)
-    {   import dlangui;
+    {   if(time < 0) return false;
+        mousePos = vecOf(what.x, what.y, Rect(0, 0, window.width, window.height));
+        
         if(what.action == MouseAction.ButtonDown)
         {   if(what.button == MouseButton.Left)
             {   auto shot = new Shot;
                 content ~= shot;
-                shot.position = vec3(vecOf(what.x, what.y, Rect(0, 0, window.width, window.height)).vec[] ~ [0.0f]);
+                shot.position = vec3(mousePos.vec[] ~ [0.0f]);
                 shot.velocity = shot.muzzleVel;
-                return true;
             }
+        }
+        
+        invalidate();
+        return true;
+    }
+
+    override bool onKeyEvent(KeyEvent what)
+    {   if(what.keyCode == KeyCode.F2 && time < 0.0f)
+        {   restart;
+            return true;
         }
         
         return false;
@@ -139,9 +154,29 @@ class GameBoard : CanvasWidget
                     yOf(paintPos, area),
                 ), /*black*/ 0X00000000);
             }});
+            
+        auto barrels = drawableCache.getImage("Barrels").get;
+        buf.drawRescaled
+        (
+            Rect
+            (   xOf(mousePos, area) - area.width / 2,
+                yOf(mousePos, area),
+                xOf(mousePos, area) + area.width / 2,
+                yOf(mousePos, area) + area.height,
+            ),
+            barrels,
+            Rect(0, 0, barrels.width, barrels.height),
+        );
 
-        font.drawText(buf, area.left, area.top, "Tiputuksia: "d ~ drops.to!dstring, 0x00000000);
-        font.drawText(buf, area.left, area.top + 30, "Aika: "d ~ time.to!int.to!dstring, 0x00000000);
+        if(true)
+        {   bool gameOver = time < 0;
+            auto textColor = gameOver? Color.red: Color.black;
+            font.drawText(buf, area.left, area.top, "Tiputuksia: "d ~ drops.to!dstring, textColor);
+            if(gameOver)
+            {   font.drawText(buf, area.left, area.top + 30, "Kiitos pelistä! F2 aloittaaksesi alusta."d, textColor);
+            }
+            else font.drawText(buf, area.left, area.top + 30, "Aika: "d ~ time.to!int.to!dstring, textColor);
+        }
     }
 
     override bool onTimer(ulong timerId)
@@ -156,7 +191,7 @@ class GameBoard : CanvasWidget
             time -= delta * (1 + drops/100);
             invalidate();
 
-            return true;
+            return time >= 0;
         }
         assert(false);
     }
@@ -165,11 +200,12 @@ class GameBoard : CanvasWidget
 
 extern (C) int UIAppMain(string[] args)
 {   import dlangui;
+    embeddedResourceList.addResources(embedResourcesFromList!("resources.list")());
     Window window = Platform.instance.createWindow("Kaksipiippuinen", null, WindowFlag.Resizable | WindowFlag.ExpandSize, 640, 480);
     auto board = new GameBoard();
     window.mainWidget = board;
     window.show;
-    board.start;
+    board.restart;
     return Platform.instance.enterMessageLoop();
 }
 

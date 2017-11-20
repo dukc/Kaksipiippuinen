@@ -3,6 +3,7 @@ module kaksipiippuinen.shot;
 import std.stdio, std.typecons, std.range, std.algorithm;
 import kaksipiippuinen.gameObject;
 import kaksipiippuinen.bird;
+import dlangui.core.logger;
 import dlangui.core.math3d;
 
 auto ref use(alias code, T)(auto ref T a){return code(a);}
@@ -20,9 +21,9 @@ class Shot : GameObject
             .    find!((b, c) => b.distance ^^ 2 > c.magnitudeSquared)(position - a.position )
             ;
             if (!damage.empty)
-            {   if (!a.hitPoints < 0) kills--;
+            {   if (a.hitPoints < 0) kills--;
                 a.takeDamage(damage.front.damage);
-                if (!a.hitPoints < 0) kills++;
+                if (a.hitPoints < 0) kills++;
             }
         }
         range -= velocity.magnitude * deltaTime;

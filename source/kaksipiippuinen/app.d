@@ -15,7 +15,7 @@ class GameBoard : CanvasWidget
 {   import dlangui.core.types : Rect;
 
     enum size = vec3(32, 24, 0);
-    enum missPenalty = 10.0;
+    enum shotCost = 10.0;
     int drops;
     float time = -1;
     GameObject[] content;
@@ -41,20 +41,20 @@ class GameBoard : CanvasWidget
 
     public void restart()
     {   drops = 0;
-        time = 240;
+        time = 120;
         content.length = 0;
         stepTimer = setTimer(cast(long)(1000 * timerDelta));
-        foreach(i; 0 .. 5){content ~= new Bird;}
+        foreach(i; 0 .. 2){content ~= new Bird;}
 
         weapon =
         {   Weapon createdWeapon = 
             {   ammoMax: 2,
                 muzzleVelocity: 200,
                 shotRecoveryTime: .4,
-                loweringTime: .4,
-                cartridgeAddingTime: .6,
-                reloadingRecoveryTime: .4,
-                raisingTime: .4,
+                loweringTime: .3,
+                cartridgeAddingTime: .5,
+                reloadingRecoveryTime: .3,
+                raisingTime: .3,
                 readyImage: "Barrels",
                 recoilImage: "Barrels2",
                 ignitionSound: "ShotgunBlast",
@@ -67,7 +67,7 @@ class GameBoard : CanvasWidget
     private class Bird : kaksipiippuinen.bird.Bird
     {   this()
         {   position = vec3(-1, 0.5.uniform(1) * GameBoard.size.y, normalZ);
-            velocity = vec3(uniform(7.5, 12.5 + drops * .1), 0, 0);
+            velocity = vec3(uniform(10.0, 15.0 + drops * .1), 0, 0);
             if (dice(50, 50))
             {   position.x = GameBoard.size.x + 1;
                 velocity.x *= -1;
@@ -94,7 +94,7 @@ class GameBoard : CanvasWidget
             return false;
             //haavoittunut
             if (hitPoints != normalHitPoints && hitPoints >= 0){
-                time = time * .9 - 15;
+                time = time * .95 - 10;
             }
             return position.x.sgn == velocity.x.sgn;
         }
@@ -187,19 +187,42 @@ class GameBoard : CanvasWidget
         }
         
         if(delta > 0)
-        {   auto shots = content
+        {   /*auto shots()
+            {   return content
+                    .map!(a => cast(Shot)a)
+                    .filter!(a => a !is null)
+                    ;
+            }*/
+            
+            auto contentFilter = content
+                .map!(a => a.step(delta))
+                .array
+                ;
+            //immutable shotsBefore = shots.walkLength.to!int;
+            //immutable shotKillsBefore = shots.map!(a => a.kills).sum;
+
+            
+            immutable exitingShotCount = content
+                .zip(contentFilter)
+                .filter!(a => !a[1])
+                .map!(a => a[0])
                 .map!(a => cast(Shot)a)
                 .filter!(a => a !is null)
+                .walkLength
                 ;
-            immutable shotsBefore = shots.walkLength;
-            immutable shotKillsBefore = shots.map!(a => a.kills).sum;
+
+            //Vähentää käytettyjen laukausten aikahinnan
+            time -= exitingShotCount * shotCost;
+
             content = content
-                .filter!(a => a.step(delta))
+                .zip(contentFilter)
+                .filter!(a => a[1])
+                .map!(a => a[0])
                 .array
                 ;
             //antaa sakkoa huteista ja bonusta useammasta tirpasta per laaki.
-            time += (shotKillsBefore - shots.map!(a => a.kills).sum - (shotsBefore - shots.walkLength)) * missPenalty;
-            time -= delta * (1 + drops/100);
+            //time += (shotKillsBefore - shots.map!(a => a.kills).sum - (shotsBefore - shots.walkLength.to!int)) * missPenalty;
+            time -= delta * (1 + drops/40.0);
         }
 
         invalidate();
@@ -209,7 +232,7 @@ class GameBoard : CanvasWidget
     {   if (timerId == stepTimer)
         {   //jos peli on päättynyt
             if (time >= 0){} else return false;
-            if (dice(97, 3)) content ~= this.new Bird;
+            if (dice(96, 4)) content ~= this.new Bird;
             step(timerDelta);
             return true;
         }

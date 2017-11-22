@@ -1,3 +1,4 @@
 Vadim Lopatin, Andrzej Kilijański and other DLangUI makers: GUI library
-soundbible.com and Jim Rogers: shotgun sound
-Ate Eskola: image files, other sounds and application code
+Simple Directmedia Layer and Derelict developers: Audio library.
+soundbible.com and Jim Rogers: Shotgun sound
+Ate Eskola: Image files and application code

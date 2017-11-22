@@ -7,6 +7,7 @@ import core.runtime;
 import dlangui.core.math3d;
 import dlangui;
 
+
 enum timerDelta = .04f;
 
 mixin APP_ENTRY_POINT;
@@ -14,6 +15,7 @@ mixin APP_ENTRY_POINT;
 class GameBoard : CanvasWidget
 {   import dlangui.core.types : Rect;
 
+    enum audioDir = "views/audio/";
     enum size = vec3(32, 24, 0);
     enum shotCost = 10.0;
     int drops;
@@ -23,6 +25,7 @@ class GameBoard : CanvasWidget
     vec2 mousePos;
     Weapon weapon;
     bool[2] mouseButtonsDown;
+    from!"derelict.sdl2.mixer".Mix_Chunk*[string] audioChunks;
 
     static xOf(vec2 pos, Rect transform)
     {   return cast(int)(pos.x / size.x * transform.width) + transform.left;
@@ -186,13 +189,15 @@ class GameBoard : CanvasWidget
             mouseButtonsDown[1]? WeaponProcedure.reload.nullable: Nullable!WeaponProcedure.init,
         );
         
-        if(weaponResult[0] !is null)
+        if (weaponResult[0] !is null)
         {   weaponResult[0].position = vec3(mousePos.vec[] ~ [0.0f]);
             weaponResult[0].hitCanditates = () => _hitCanditates.inputRangeObject;
             content ~= weaponResult[0];
         }
+
+        if (!weaponResult[1].empty) playSound(weaponResult[1]);
         
-        if(delta > 0)
+        if (delta > 0)
         {   auto contentFilter = content
                 .map!(a => a.step(delta))
                 .array
@@ -233,21 +238,32 @@ class GameBoard : CanvasWidget
         }
         assert(false);
     }
+
+    void playSound(string name)
+    {   import derelict.sdl2.mixer;
+        import std.string;
+        if (audioError != "") return;
+        if (!(name in audioChunks))
+        {   audioChunks[name] = Mix_LoadWAV(toStringz(audioDir ~ name ~ ".wav"));
+        }
+        auto entry = audioChunks[name];
+        if (entry !is null) Mix_PlayChannel(-1, entry, 0);
+    }
 }
 
-
 extern (C) int UIAppMain(string[] args)
-{   import dlangui;
-    embeddedResourceList.addResources(embedResourcesFromList!("resources.list")());
+{   embeddedResourceList.addResources(embedResourcesFromList!("resources.list")());
     Window window = Platform.instance.createWindow("Kaksipiippuinen", null, WindowFlag.Resizable | WindowFlag.ExpandSize, 640, 480);
     auto board = new GameBoard();
     window.mainWidget = board;
     board.restart;
     window.show;
+    if (audioError != "") Log.d("Äänikirjastoa ei pystytty lataamaan: ", audioError);
+    else Log.d("Äänikirjasto alustettu normaalisti");
     return Platform.instance.enterMessageLoop();
 }
 
-auto alive(Bird what){return what.hitPoints > 0;}
+/*auto alive(Bird what){return what.hitPoints > 0;}
 unittest{
     auto rabbit = Bird.init;
     assert(rabbit.alive);
@@ -255,7 +271,34 @@ unittest{
     assert(!rabbit.alive);
     rabbit.hitpoints -= 10;
     assert(!rabbit.alive);
+}*/
+
+shared static this()
+{   import derelict.sdl2.sdl;
+    import derelict.sdl2.mixer;
+    import derelict.sdl2.functions;
+    import derelict.sdl2.types;
+    import derelict.util.exception;
+    import std.string;
+    
+    try
+    {   DerelictSDL2.load();
+        DerelictSDL2Mixer.load();
+
+        if (SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO ) < 0)
+        {   audioError = SDL_GetError().fromStringz.idup;
+        }   else if (Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, 2, 2048 ) < 0)
+        {   audioError = Mix_GetError().fromStringz.idup;
+        }   else audioError = "" /*onnistui*/;
+    }
+    catch (DerelictException e)
+    {   audioError = e.toString;
+    }
 }
+
+shared string audioError = "Not initialized yet";
+
+
 
 //////////////////////////////////////////////////////
 //utilites from here-on

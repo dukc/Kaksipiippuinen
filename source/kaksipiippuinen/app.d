@@ -71,6 +71,7 @@ class GameBoard : CanvasWidget
             if (dice(50, 50))
             {   position.x = GameBoard.size.x + 1;
                 velocity.x *= -1;
+                //this.size.x *= -1;
             }
         }
 
@@ -137,14 +138,19 @@ class GameBoard : CanvasWidget
 
         content.each!( (GameObject na){
             if(auto a = cast(Bird)na)
-            {
+            {   //auto drawDir = only(a.size.x.sgn, a.size.y.sgn);
+                auto duckImage = drawableCache.getImage(a.image).get;
                 auto paintPos = vec2(a.position.vec[0 .. 2]) - a.size / 2;
-                buf.fillRect(Rect
-                (   xOf(paintPos, area),
-                    yOf(paintPos + a.size, area),
-                    xOf(paintPos + a.size, area),
-                    yOf(paintPos, area),
-                ), /*black*/ 0X00000000);
+                buf.drawRescaled
+                (   Rect
+                    (   xOf(paintPos, area),
+                        yOf(paintPos + a.size, area),
+                        xOf(paintPos + a.size, area),
+                        yOf(paintPos, area),
+                    ),
+                    duckImage,
+                    Rect(0, 0, duckImage.width, duckImage.height),
+                );
             }});
             
         if (!weapon.image.empty)
@@ -187,19 +193,10 @@ class GameBoard : CanvasWidget
         }
         
         if(delta > 0)
-        {   /*auto shots()
-            {   return content
-                    .map!(a => cast(Shot)a)
-                    .filter!(a => a !is null)
-                    ;
-            }*/
-            
-            auto contentFilter = content
+        {   auto contentFilter = content
                 .map!(a => a.step(delta))
                 .array
                 ;
-            //immutable shotsBefore = shots.walkLength.to!int;
-            //immutable shotKillsBefore = shots.map!(a => a.kills).sum;
 
             
             immutable exitingShotCount = content
@@ -220,8 +217,6 @@ class GameBoard : CanvasWidget
                 .map!(a => a[0])
                 .array
                 ;
-            //antaa sakkoa huteista ja bonusta useammasta tirpasta per laaki.
-            //time += (shotKillsBefore - shots.map!(a => a.kills).sum - (shotsBefore - shots.walkLength.to!int)) * missPenalty;
             time -= delta * (1 + drops/40.0);
         }
 

@@ -1,0 +1,3 @@
+Vadim Lopatin, Andrzej Kilijański and other DLangUI makers: GUI library
+soundbible.com and Jim Rogers: shotgun sound
+Ate Eskola: image files, other sounds and application code

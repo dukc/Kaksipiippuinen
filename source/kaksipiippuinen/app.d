@@ -54,13 +54,17 @@ class GameBoard : CanvasWidget
             {   ammoMax: 2,
                 muzzleVelocity: 200,
                 shotRecoveryTime: .4,
-                loweringTime: .3,
-                cartridgeAddingTime: .5,
-                reloadingRecoveryTime: .3,
+                loweringTime: .2,
+                cartridgeAddingTime: .4,
+                reloadingRecoveryTime: .5,
                 raisingTime: .3,
                 readyImage: "Barrels",
                 recoilImage: "Barrels2",
                 ignitionSound: "ShotgunBlast",
+                chamberOpeningSound: "Opened",
+                chamberClosingSound: "Closed",
+                cartridgeEnterSound: "Inserted",
+                emptyFireSound: "Click",
             };
             createdWeapon.standardizeState;
             return createdWeapon;

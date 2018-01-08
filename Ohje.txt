@@ -14,7 +14,7 @@ saat lisäaikaa, mitä nopeammasta vauhdista, sen enemmän. Pelin edetessä
 kentälle ilmestyy nopeampia ja nopeampia sorsia.
 
 Pudotusten kertyessä ajankulu kiihtyy nopeasti. Sinun on siis ammuttava
-yhä nopeampia tai keskimärin yhä useampia sorsia kerralla edistyessäsi.
+yhä nopeampia tai keskimäärin yhä useampia sorsia kerralla edistyessäsi.
 Sata pudotusta on jo aika hyvä tulos.
 
 Minun pitää vielä selvittää miten saisin sorsien nokat osoittamaan

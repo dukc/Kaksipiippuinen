@@ -3,9 +3,9 @@
     "authors": [
         "Dukc"
     ],
-    "description": "As Timo Pyrrö called it, a duck hunter.",
+    "description": "A duck hunter video game.",
     "copyright": "Copyright © 2016, Yleinen",
-    "license": "proprietary",
+    "license": "GPL-2.0 or later",
     "dependencies": {
         "dlangui": "~>0.9.78",
         "derelict-sdl2": "~>3.1.0-alpha.2"
